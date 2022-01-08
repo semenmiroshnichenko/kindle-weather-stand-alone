@@ -1,21 +1,28 @@
 import codecs
 import json
-import urllib2
+from urllib2 import urlopen
+# try:
+#     # For Python 3.0 and later
+#     from urllib.request import urlopen
+# except ImportError:
+#     # Fall back to Python 2's urllib2
+#     from urllib2 import urlopen
+
 from datetime import datetime
 
 import pytz
 
 # Parameters
 weather_key = ''  # OpenWeatherMap API key
-location_string = ''  # Location parameter, see below for details
+location_string = 'Vienna,at'  # Location parameter, see below for details
 # You can search for location with following ways:
 # - By city name: city name and country code divided by comma, use ISO 3166 country codes. e.g. 'q=London,uk'
 # - By city id: simply lookup your desired city in https://openweathermap.org/ and the city id will show up in URL field. e.g. 'id=2172797'
 # - By geographic coordinates: by latitude and longitude. e.g. 'lat=35&lon=139'
 # - By ZIP code: by zip/post code (if country is not specified, will search the USA). e.g. 'zip=94040,us'
 unit_suite = 'metric'  # Unit of measurements, can be 'metric' or 'imperial'
-time_unit = 12  # Change to 24 if you want to use 24-hour time (i.e. 23:59 instead of 11:59AM)
-timezone_string = 'America/New_York'  # Desired timezone string, lookup at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+time_unit = 24  # Change to 24 if you want to use 24-hour time (i.e. 23:59 instead of 11:59AM)
+timezone_string = 'Europe/Vienna'  # Desired timezone string, lookup at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 script_version = '3.0'
 
 
@@ -41,8 +48,7 @@ def format_time(dt, output_format):
             return dt.strftime('%-H:%M')
     return None
 
-
-def hourly_to_daily(forecasts, now):
+def hourly_to_daily_v2(forecasts, now):
     daily = {}
     for day in forecasts:
         current_date = utc_to_timezone(day['dt'])
@@ -68,23 +74,23 @@ def hourly_to_daily(forecasts, now):
 
         daily[delta]['day'] = format_time(current_date, 'day')
 
-        if day['main']['temp_max'] > daily[delta]['temp_high']:
-            daily[delta]['temp_high'] = day['main']['temp_max']
+        if day['temp']['max'] > daily[delta]['temp_high']:
+            daily[delta]['temp_high'] = day['temp']['max']
 
-        if day['main']['temp_min'] < daily[delta]['temp_low']:
-            daily[delta]['temp_low'] = day['main']['temp_min']
+        if day['temp']['min'] < daily[delta]['temp_low']:
+            daily[delta]['temp_low'] = day['temp']['min']
 
         for weather in day['weather']:
             daily[delta]['weathers'][weather['id']] = weather
 
-        daily[delta]['wind_bearing'] = daily[delta]['wind_bearing'] + day['wind']['deg']
+        daily[delta]['wind_bearing'] = daily[delta]['wind_bearing'] + day['wind_deg']
         daily[delta]['wind_bearing_count'] = daily[delta]['wind_bearing_count'] + 1
 
-        if day['wind']['speed'] > daily[delta]['wind_max']:
-            daily[delta]['wind_max'] = day['wind']['speed']
+        if day['wind_speed'] > daily[delta]['wind_max']:
+            daily[delta]['wind_max'] = day['wind_speed']
 
-        if day['wind']['speed'] < daily[delta]['wind_min']:
-            daily[delta]['wind_min'] = day['wind']['speed']
+        if day['wind_speed'] < daily[delta]['wind_min']:
+            daily[delta]['wind_min'] = day['wind_speed']
 
     # Calculate Wind bearing and daily weather/icon
     for delta, day in daily.items():
@@ -98,15 +104,14 @@ def hourly_to_daily(forecasts, now):
 
     return daily
 
-
 # Weather icon translation table
 icon_def = {
     '01d': 'fair',
-    '01n': 'fair',
+    '01n': 'fair-night',
     '02d': 'partlycloudy',
-    '02n': 'partlycloudy',
+    '02n': 'partlycloudy-night',
     '03d': 'mostlycloudy',
-    '03n': 'mostlycloudy',
+    '03n': 'mostlycloudy-night',
     '04d': 'overcast',
     '04n': 'overcast',
     '09d': 'rain',
@@ -128,22 +133,28 @@ unit_def = {
 }
 
 # Get battery percentage
-battery_capacity = open('/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity', 'r')
+battery_capacity = open('/sys/devices/system/luigi_battery/luigi_battery0/battery_capacity', 'r')
 
 # Get weather data from API
-weather_url = 'http://api.openweathermap.org/data/2.5/weather?APPID=' + weather_key + '&units=' + unit_suite + '&' + location_string
-weather_response = urllib2.urlopen(weather_url)
+weather_url = 'http://api.openweathermap.org/data/2.5/weather?APPID=' + weather_key + '&units=' + unit_suite + '&q=' + location_string
+weather_response = urlopen(weather_url)
 weather_query = json.loads(weather_response.read())
 weather_response.close()
 
-forecast_url = 'http://api.openweathermap.org/data/2.5/forecast?APPID=' + weather_key + '&units=' + unit_suite + '&' + location_string
-forecast_response = urllib2.urlopen(forecast_url)
+forecast_url = 'http://api.openweathermap.org/data/2.5/forecast?APPID=' + weather_key + '&units=' + unit_suite + '&q=' + location_string
+forecast_response = urlopen(forecast_url)
 forecast_query = json.loads(forecast_response.read())
 forecast_response.close()
 
 current_datetime = utc_to_timezone(weather_query['dt'])
-forecast_daily = hourly_to_daily(forecast_query['list'], current_datetime)
 forecast_hourly = forecast_query['list']
+
+onecall_url = 'http://api.openweathermap.org/data/2.5/onecall?APPID=' + weather_key + '&units=' + unit_suite + '&lat=48.18195079302368&lon=16.322924463237477&exclude=current,minutely,hourly,alerts'
+onecall_response = urlopen(onecall_url)
+onecall_query = json.loads(onecall_response.read())
+onecall_response.close()
+
+forecast_daily = hourly_to_daily_v2(onecall_query['daily'], current_datetime)
 
 weather_units = unit_def[unit_suite]
 
@@ -189,14 +200,14 @@ weather_data = {
     'VAR_DAILY_3_DAY': forecast_daily[4]['day'],
     'VAR_DAILY_3_HIGH': int(round(forecast_daily[4]['temp_high'])),
     'VAR_DAILY_3_LOW': int(round(forecast_daily[4]['temp_low'])),
-    'VAR_DAILY_4_ICON': 'na',
-    'VAR_DAILY_4_DAY': 'N/A',
-    'VAR_DAILY_4_HIGH': 0,
-    'VAR_DAILY_4_LOW': 0,
-    'VAR_DAILY_5_ICON': 'na',
-    'VAR_DAILY_5_DAY': 'N/A',
-    'VAR_DAILY_5_HIGH': 0,
-    'VAR_DAILY_5_LOW': 0,
+    'VAR_DAILY_4_ICON': icon_def[forecast_daily[5]['icon']],
+    'VAR_DAILY_4_DAY': forecast_daily[5]['day'],
+    'VAR_DAILY_4_HIGH': int(round(forecast_daily[5]['temp_high'])),
+    'VAR_DAILY_4_LOW': int(round(forecast_daily[5]['temp_low'])),
+    'VAR_DAILY_5_ICON': icon_def[forecast_daily[6]['icon']],
+    'VAR_DAILY_5_DAY': forecast_daily[6]['day'],
+    'VAR_DAILY_5_HIGH': int(round(forecast_daily[6]['temp_high'])),
+    'VAR_DAILY_5_LOW': int(round(forecast_daily[6]['temp_low'])),
     'VAR_PROVIDER_STRING': 'Powered by OpenWeatherMap',
     'VAR_BATTERY_CAPACITY': battery_capacity.read(),
     'VAR_VERSION': script_version
@@ -207,4 +218,4 @@ output = codecs.open('weather-template.svg', 'r', encoding='utf-8').read()
 for (key, value) in weather_data.items():
     output = output.replace(key, str(value))
 
-codecs.open('/tmp/weather-latest.svg', 'w', encoding='utf-8').write(output)
+codecs.open('/mnt/debian/tmp/weather-latest.svg', 'w', encoding='utf-8').write(output)

@@ -2,8 +2,14 @@
     "items": [
     {
         "name": "Kindle Weather Stand",
-        "priority": -999,
-        "action": "./bin/start.sh"
+        "priority": -998,
+		"items": [
+		{
+			"name": "Run",
+			"priority": 1,
+			"action": "./bin/start.sh 2>&1"
+		}
+		]
     }
     ]
 }

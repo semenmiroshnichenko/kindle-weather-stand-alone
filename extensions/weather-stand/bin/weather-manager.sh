@@ -14,8 +14,8 @@ cd "$(dirname "$0")"
 if [ -e disable ]; then exit 0; fi
 
 # Check battery capacity
-BATTERY=`grep -o "[0-9]*" /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity`
-CURRENT=`cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_current`
+BATTERY=`grep -o "[0-9]*" /sys/devices/system/luigi_battery/luigi_battery0/battery_capacity`
+CURRENT=`cat /sys/devices/system/luigi_battery/luigi_battery0/battery_current`
 
 if [ $BATTERY -le 5 ] && [ $CURRENT -le 0 ]; then
     if [ -e /tmp/weather-battery-drained.flag ]; then
@@ -27,7 +27,7 @@ if [ $BATTERY -le 5 ] && [ $CURRENT -le 0 ]; then
         eips 0 38 '--------------- CHARGE BATTERY NOW ---------------'
         # Send a push notification for battery low
         if [ ! -z $PO_TOKEN ] && [ ! -z $PO_USER ]; then
-            RESULT=`cat /sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity`
+            RESULT=`cat /sys/devices/system/luigi_battery/luigi_battery0/battery_capacity`
             curl \
             -F "token=${PO_TOKEN}" \
             -F "user=${PO_USER}" \
@@ -58,6 +58,6 @@ else
         # Clear up the display
         eips -c
         eips -c
-        eips -g /tmp/weather-crushed.png        
+        eips -g /mnt/debian/tmp/weather-crushed.png        
     fi
 fi
