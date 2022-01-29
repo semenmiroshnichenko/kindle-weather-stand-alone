@@ -52,7 +52,7 @@ def hourly_to_daily_v2(forecasts, now):
     daily = {}
     for day in forecasts:
         current_date = utc_to_timezone(day['dt'])
-        delta = current_date.day - now.day
+        delta = int(abs((current_date - now).days))
 
         try:
             daily[delta]
