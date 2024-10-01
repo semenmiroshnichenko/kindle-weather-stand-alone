@@ -1,12 +1,11 @@
 import codecs
 import json
-from urllib2 import urlopen
-# try:
-#     # For Python 3.0 and later
-#     from urllib.request import urlopen
-# except ImportError:
-#     # Fall back to Python 2's urllib2
-#     from urllib2 import urlopen
+try:
+    # For Python 3.0 and later
+    from urllib.request import urlopen
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from urllib2 import urlopen
 
 from datetime import datetime
 
@@ -14,7 +13,6 @@ import pytz
 
 # Parameters
 weather_key = ''  # OpenWeatherMap API key
-#location_string = '2925533'  # Location parameter, see below for details
 location_string = 'Frankfurt,de'  # Location parameter, see below for details
 # You can search for location with following ways:
 # - By city name: city name and country code divided by comma, use ISO 3166 country codes. e.g. 'q=London,uk'
@@ -155,10 +153,10 @@ geocoding_response = urlopen(geocoding_url)
 geocoding_query = json.loads(geocoding_response.read())
 geocoding_response.close()
 
-lat = geocoding_query['lat']
-lon = geocoding_query['lon']
+lat = geocoding_query[0]['lat']
+lon = geocoding_query[0]['lon']
 
-onecall_url = 'http://api.openweathermap.org/data/3.0/onecall?APPID=' + weather_key + '&units=' + unit_suite + '&lat=' + lat + '&lon=' + lon + '&exclude=current,minutely,hourly,alerts'
+onecall_url = 'http://api.openweathermap.org/data/3.0/onecall?APPID=' + weather_key + '&units=' + unit_suite + '&lat=' + str(lat) + '&lon=' + str(lon) + '&exclude=current,minutely,hourly,alerts'
 onecall_response = urlopen(onecall_url)
 onecall_query = json.loads(onecall_response.read())
 onecall_response.close()
