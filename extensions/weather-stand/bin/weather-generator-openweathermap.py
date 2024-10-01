@@ -14,7 +14,8 @@ import pytz
 
 # Parameters
 weather_key = ''  # OpenWeatherMap API key
-location_string = 'Vienna,at'  # Location parameter, see below for details
+#location_string = '2925533'  # Location parameter, see below for details
+location_string = 'Frankfurt,de'  # Location parameter, see below for details
 # You can search for location with following ways:
 # - By city name: city name and country code divided by comma, use ISO 3166 country codes. e.g. 'q=London,uk'
 # - By city id: simply lookup your desired city in https://openweathermap.org/ and the city id will show up in URL field. e.g. 'id=2172797'
@@ -149,7 +150,15 @@ forecast_response.close()
 current_datetime = utc_to_timezone(weather_query['dt'])
 forecast_hourly = forecast_query['list']
 
-onecall_url = 'http://api.openweathermap.org/data/2.5/onecall?APPID=' + weather_key + '&units=' + unit_suite + '&lat=48.18195079302368&lon=16.322924463237477&exclude=current,minutely,hourly,alerts'
+geocoding_url = 'http://api.openweathermap.org/geo/1.0/direct?APPID=' + weather_key + '&q=' + location_string
+geocoding_response = urlopen(geocoding_url)
+geocoding_query = json.loads(geocoding_response.read())
+geocoding_response.close()
+
+lat = geocoding_query['lat']
+lon = geocoding_query['lon']
+
+onecall_url = 'http://api.openweathermap.org/data/3.0/onecall?APPID=' + weather_key + '&units=' + unit_suite + '&lat=' + lat + '&lon=' + lon + '&exclude=current,minutely,hourly,alerts'
 onecall_response = urlopen(onecall_url)
 onecall_query = json.loads(onecall_response.read())
 onecall_response.close()
